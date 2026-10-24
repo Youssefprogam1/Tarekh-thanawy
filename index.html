@@ -108,13 +108,19 @@ async function reg(){
   if(busy)return;
   const n=v('n'),p=v('p'),g=v('g'),c=v('c');
   if(!n||!p||!g||!c){msg='اكتب كل البيانات الأول';return draw()}
+  const dg=x=>x.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'');
+  if(dg(p).length<10||dg(g).length<10){msg='اكتب رقم الموبايل كامل (11 رقم)';return draw()}
   busy=true;msg='';
   try{
     let s=(await SB.auth.getSession()).data.session;
     if(!s||s.user.email){const r=await SB.auth.signInAnonymously();if(r.error)throw r.error;s=r.data.session}
-    const r2=await SB.from('students').insert({user_id:s.user.id,name:n,phone:p,guardian:g,code:c});
-    if(r2.error&&r2.error.code!=='23505')throw r2.error;
-    await loadStu();busy=false;go('stu','scan')
+    const r2=await SB.rpc('register_student',{p_name:n,p_phone:p,p_guardian:g,p_code:c});
+    if(r2.error)throw r2.error;
+    const M={code_taken:'الكود ده مستخدم قبل كده مع رقم تاني، اتأكد من الكود ورقمك',phone_taken:'رقم الطالب ده مسجل قبل كده بكود تاني',missing:'اكتب كل البيانات الأول',no_auth:'جرّب تاني'};
+    if(M[r2.data]){busy=false;msg=M[r2.data];return draw()}
+    await loadStu();busy=false;
+    if(!D.me){msg='التسجيل ماتمش، جرّب تاني';return draw()}
+    go('stu','scan')
   }catch(e){busy=false;msg='التسجيل ماتمش، تأكد من النت وجرّب تاني';draw()}
 }
 async function supLogin(){
