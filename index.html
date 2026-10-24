@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#8F6314">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="تاريخ سان ابرام">
 <title>مركز سان ابرام التعليمي</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -79,23 +85,53 @@ const setQd=()=>{try{localStorage.setItem('sa_qd',today())}catch(e){}draw()};
 const FAIL='ماتحفظش، جرّب تاني';
 async function loadStu(){
   const r=await Promise.all([SB.from('students').select('*').limit(1),SB.from('attendance').select('*').order('day',{ascending:false}),SB.from('homework').select('*').order('due'),SB.from('exams').select('*').order('exam_date'),SB.from('settings').select('*').eq('id',1).single()]);
-  D.me=(r[0].data||[])[0]||null;D.att=r[1].data||[];D.hw=r[2].data||[];D.ex=r[3].data||[];if(r[4].data)D.cfg=r[4].data
+  D.me=(r[0].data||[])[0]||null;D.att=r[1].data||[];D.hw=r[2].data||[];D.ex=r[3].data||[];if(r[4].data)D.cfg=r[4].data;if(D.me){LS.set('sa_role','stu');LS.set('sa_cache',{me:D.me,att:D.att,hw:D.hw,ex:D.ex,cfg:D.cfg})}
 }
 async function loadSup(){
   const r=await Promise.all([SB.from('students').select('*').order('created_at'),SB.from('attendance').select('*'),SB.from('homework').select('*').order('due'),SB.from('exams').select('*').order('exam_date'),SB.from('settings').select('*').eq('id',1).single(),SB.from('qr').select('*').eq('id',1).single()]);
-  D.sts=r[0].data||[];D.att=r[1].data||[];D.hw=r[2].data||[];D.ex=r[3].data||[];if(r[4].data)D.cfg=r[4].data;D.qr=r[5].data?r[5].data.token:null;
-  if(!D.qr||D.qr.slice(0,10)!==today()){const t=today()+'.'+Math.random().toString(36).slice(2,10);const u=await SB.from('qr').update({token:t}).eq('id',1);if(!u.error)D.qr=t}
+  D.sts=r[0].data||[];D.att=r[1].data||[];D.hw=r[2].data||[];D.ex=r[3].data||[];if(r[4].data)D.cfg=r[4].data;const sc=await SB.rpc('get_qr_secret');if(sc.data){LS.set('sa_secret',sc.data);LS.set('sa_role','sup')}
+}
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let qrT=null;
+async function hmacHex(sec,msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(sec),{name:'HMAC',hash:'SHA-256'},false,['sign']);const s=await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg));return Array.from(new Uint8Array(s)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function showQr(){
+  clearInterval(qrT);
+  const sec=LS.get('sa_secret'),el=document.getElementById('qr');
+  if(!el)return;
+  if(!sec){el.innerHTML='<p class="note" style="color:#333">ادخل مرة والنت شغال عشان الكود يتجهز</p>';return}
+  const make=async()=>{const e=document.getElementById('qr');if(!e){clearInterval(qrT);return}const ts=Math.floor(Date.now()/1000);const p='v1.'+ts+'.'+await hmacHex(sec,'v1.'+ts);e.innerHTML='';new QRCode(e,{text:p,width:210,height:210,correctLevel:QRCode.CorrectLevel.L})};
+  await make();qrT=setInterval(make,20000)
+}
+async function sync(){
+  const pend=LS.get('sa_pending')||[];
+  if(!pend.length||!navigator.onLine)return {};
+  const left=[],res={};
+  for(const p of pend){
+    try{const r=await SB.rpc('check_in_offline',{p_payload:p});if(r.error)left.push(p);else res[p]=r.data}
+    catch(e){left.push(p)}
+  }
+  LS.set('sa_pending',left);
+  if(Object.keys(res).length&&view==='stu'){try{await loadStu()}catch(e){}}
+  return res
+}
+window.addEventListener('online',async()=>{await sync();if(view==='stu'){draw()}});
+function offlineBoot(role){
+  if(role==='stu'){const c=LS.get('sa_cache');if(c){Object.assign(D,c);view='stu';tab='scan';return draw()}}
+  if(role==='sup'&&LS.get('sa_secret')){D.off=true;view='sup';tab='qr';return draw()}
+  view='login';msg='مفيش نت، ادخل مرة والنت شغال الأول';draw()
 }
 async function boot(){
+  const role=LS.get('sa_role');
+  if(!navigator.onLine&&role)return offlineBoot(role);
   try{
     if(!SB)throw 0;
     const s=(await SB.auth.getSession()).data.session;
     if(s){
-      const sup=s.user.email?(await SB.rpc('is_sup')).data:false;
-      if(sup){await loadSup();view='sup';tab='qr'}
-      else{await loadStu();view=D.me?'stu':'login';tab='scan'}
+      const q=await SB.rpc('is_sup');if(q.error)throw q.error;
+      if(q.data){await loadSup();view='sup';tab='qr'}
+      else{await loadStu();view=D.me?'stu':'login';tab='scan';sync().then(()=>{if(view==='stu')draw()})}
     }else view='login'
-  }catch(e){view='login';msg='مفيش اتصال بالإنترنت، جرّب تاني'}
+  }catch(e){if(role)return offlineBoot(role);view='login';msg='مفيش اتصال بالإنترنت، جرّب تاني'}
   draw()
 }
 async function go(vw,t){
@@ -103,7 +139,7 @@ async function go(vw,t){
   try{if(vw==='sup')await loadSup();if(vw==='stu')await loadStu()}catch(e){}
   draw();scrollTo(0,0)
 }
-async function out(){stopScan();await SB.auth.signOut();D={me:null,sts:[],att:[],hw:[],ex:[],cfg:{grade_title:'',grade_max:20},qr:null};go('login')}
+async function out(){stopScan();try{await SB.auth.signOut()}catch(e){}['sa_role','sa_cache','sa_secret'].forEach(k=>LS.del(k));D={me:null,sts:[],att:[],hw:[],ex:[],cfg:{grade_title:'',grade_max:20},qr:null};go('login')}
 async function reg(){
   if(busy)return;
   const n=v('n'),p=v('p'),g=v('g'),c=v('c');
@@ -146,11 +182,19 @@ async function startScan(){
   };tick()
 }
 function stopScan(){scanning=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
-async function checkIn(tok){
-  const r=await SB.rpc('check_in',{p_token:tok});
-  const m={invalid:'الكود ده مش صحيح أو قديم',no_student:'سجّل بياناتك الأول',already:'انت سجلت حضورك النهاردة قبل كده'};
-  if(r.error)msg='حصلت مشكلة، جرّب تاني';else if(m[r.data])msg=m[r.data];else ok='اتسجل حضورك: '+r.data;
-  await loadStu();draw()
+async function checkIn(payload){
+  const p=String(payload).split('.'),ts=+p[1];
+  if(p[0]!=='v1'||p.length!==3||!ts||Math.abs(Date.now()/1000-ts)>90){msg='الكود ده قديم أو مش صحيح، امسح الكود الحالي من موبايل المشرف';ok='';return draw()}
+  const pend=LS.get('sa_pending')||[];
+  if(!pend.includes(payload)){pend.push(payload);LS.set('sa_pending',pend)}
+  const t=new Date(ts*1000).toLocaleTimeString('en-GB',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit'});
+  ok='اتسجل حضورك الساعة '+t+(t>'16:45'?' (متأخر)':' (حاضر)');msg='';
+  const res=await sync(),r=res[payload];
+  if(r==='already'){msg='انت سجلت حضورك النهاردة قبل كده';ok=''}
+  else if(r==='invalid'){msg='الكود ده مش صحيح أو قديم';ok=''}
+  else if(r==='no_student'){msg='سجّل بياناتك الأول';ok=''}
+  else if(r===undefined)ok+=' - هيتأكد لما النت يرجع';
+  draw()
 }
 async function addHw(){const p=v('hp'),d=v('hd');if(!p||!d){msg='اكتب الصفحات وتاريخ التسليم';return draw()}const r=await SB.from('homework').insert({pages:p,due:d});if(r.error){msg=FAIL;return draw()}await loadSup();ok='اتضاف الواجب وهيوصل الطلاب';msg='';draw()}
 async function addExam(){const t=v('et'),d=v('ed');if(!t||!d){msg='اكتب اسم الامتحان وتاريخه';return draw()}const r=await SB.from('exams').insert({title:t,exam_date:d});if(r.error){msg=FAIL;return draw()}await loadSup();ok='اتضاف الامتحان وهيوصل الطلاب';msg='';draw()}
@@ -189,28 +233,31 @@ function supLoginV(){return `<div class="hero">${PYR}<h1>دخول المشرف</
 function stuV(){
   const s=D.me;let h=bar('أهلًا '+esc(s.name),'مركز سان ابرام التعليمي',"out()")+'<main>';
   if(tab==='scan'&&qd()!==today())h+=`<div class="card" style="box-shadow:inset 0 3px 0 var(--acc)"><div class="row" style="border:0"><b style="color:var(--acc)">حكمة اليوم</b><button class="sec" onclick="setQd()">إغلاق</button></div><p style="margin:0;font-size:17px">${quote()}</p></div>`;
-  if(tab==='scan')h+=`<div class="card"><p style="margin:0">امسح الـ QR اللي مع المشرف. اللي يوصل بعد 4:45 بيتسجل متأخر.</p>${scanning?'<video id="cam" playsinline muted style="width:100%;border-radius:8px"></video><button class="sec" onclick="stopScan();draw()">إلغاء</button>':'<button onclick="startScan()">فتح الكاميرا ومسح QR</button>'}${ms()}</div><div class="card"><div class="row"><b>سجل حضورك</b><span class="mut">حضرت ${D.att.length} مرة</span></div>${D.att.length?D.att.map(a=>`<div class="row"><span>${a.day} - ${a.time_in.slice(0,5)}</span><span class="tag ${a.status==='حاضر'?'ok':'bad'}">${a.status}</span></div>`).join(''):emp('لسه مفيش حضور متسجل')}</div>`;
+  if(tab==='scan'&&(LS.get('sa_pending')||[]).length)h+=`<div class="card"><p style="margin:0">فيه ${(LS.get('sa_pending')||[]).length} حضور متسجل على موبايلك ومستني النت يرجع عشان يتأكد.</p></div>`;
+  if(tab==='scan')h+=`<div class="card"><p style="margin:0">امسح الـ QR اللي مع المشرف. اللي يوصل بعد 4:45 بيتسجل متأخر. وبيشتغل حتى من غير نت.</p>${scanning?'<video id="cam" playsinline muted style="width:100%;border-radius:8px"></video><button class="sec" onclick="stopScan();draw()">إلغاء</button>':'<button onclick="startScan()">فتح الكاميرا ومسح QR</button>'}${ms()}</div><div class="card"><div class="row"><b>سجل حضورك</b><span class="mut">حضرت ${D.att.length} مرة</span></div>${D.att.length?D.att.map(a=>`<div class="row"><span>${a.day} - ${a.time_in.slice(0,5)}</span><span class="tag ${a.status==='حاضر'?'ok':'bad'}">${a.status}</span></div>`).join(''):emp('لسه مفيش حضور متسجل')}</div>`;
   if(tab==='hw')h+=`<div class="card"><b>الواجبات</b>${D.hw.length?D.hw.slice().reverse().map(x=>`<div class="row"><span>${esc(x.pages)}</span><span class="mut">تسليم ${x.due}</span></div>`).join(''):emp('مفيش واجبات دلوقتي')}</div>`;
   if(tab==='note')h+=`<div class="card"><b>الإشعارات</b>${notes().map(t=>`<div class="row"><span>${esc(t)}</span></div>`).join('')}</div>`;
   if(tab==='grade')h+=`<div class="card"><b>درجاتي</b><div class="row"><span>${esc(D.cfg.grade_title||'الامتحان')}</span><b>${s.grade==null?'لسه متحطتش':s.grade+' من '+D.cfg.grade_max}</b></div></div>`;
   return h+'</main>'+nav([['scan','الحضور'],['hw','الواجبات'],['note','الإشعارات'],['grade','درجاتي']],tab,'stu')}
 function supV(){
   const d=adate||today();let h=bar('لوحة المشرف',D.sts.length+' طالب',"out()")+'<main>';
-  if(tab==='qr')h+=`<div class="card"><p style="margin:0">اعرض الكود ده والطلاب يمسحوه بالكاميرا من التطبيق. بيتجدد لوحده كل يوم.</p><div id="qr"></div><p class="note">درس ${today()} الساعة 4:30</p></div>`;
+  if(D.off)h+='<div class="card"><p class="note">وضع بدون نت: الكود شغال، وباقي الصفحات محتاجة نت.</p></div>';
+  if(tab==='qr')h+=`<div class="card"><p style="margin:0">اعرض الكود ده والطلاب يمسحوه من التطبيق. بيتغير كل 20 ثانية، وبيشتغل حتى من غير نت.</p><div id="qr"></div><p class="note">درس ${today()} الساعة 4:30</p></div>`;
   if(tab==='att')h+=`<div class="card"><label>التاريخ<input type="date" value="${d}" onchange="adate=this.value;draw()"></label><p class="note">غيّر حالة أي طالب (حاضر / متأخر / غايب) أو وقت وصوله.</p>${ms()}</div><div class="card">${D.sts.length?D.sts.map(s=>{const a=D.att.find(x=>x.student_id===s.id&&x.day===d),st=a?a.status:'غايب';return `<div class="row"><span style="flex:1">${esc(s.name)}</span><select class="${st==='حاضر'?'ok':st==='متأخر'?'bad':'mut'}" onchange="setAtt('${s.id}',this.value)" aria-label="حالة ${esc(s.name)}">${['حاضر','متأخر','غايب'].map(o=>`<option${o===st?' selected':''}>${o}</option>`).join('')}</select>${a?`<input class="tm" type="time" value="${a.time_in.slice(0,5)}" onchange="setAtime('${a.id}',this.value)" aria-label="وقت ${esc(s.name)}">`:''}</div>`}).join(''):emp('لسه مفيش طلاب مسجلين')}</div>`;
   if(tab==='hw')h+=`<div class="card"><b>إضافة واجب</b><label>الصفحات (مثلًا: صفحات 25 إلى 30)<input id="hp"></label><label>تاريخ التسليم<input id="hd" type="date"></label><button onclick="addHw()">إضافة وإرسال إشعار</button>${ms()}</div><div class="card"><b>الواجبات الحالية (تقدر تعدّل أو تحذف)</b>${D.hw.length?D.hw.map(x=>`<div class="row"><input value="${esc(x.pages)}" onchange="upd('homework','hw','${x.id}','pages',this.value.trim())" aria-label="الصفحات"><input class="tm" type="date" value="${x.due}" onchange="upd('homework','hw','${x.id}','due',this.value)" aria-label="التسليم">${dbtn('hw'+x.id,'homework',x.id)}</div>`).join(''):emp('مفيش واجبات')}</div>`;
   if(tab==='ex')h+=`<div class="card"><b>إضافة امتحان شامل</b><label>اسم الامتحان<input id="et"></label><label>تاريخه<input id="ed" type="date"></label><button onclick="addExam()">إضافة وإرسال إشعار</button>${ms()}</div><div class="card"><b>الامتحانات الحالية (تقدر تعدّل أو تحذف)</b>${D.ex.length?D.ex.map(e=>`<div class="row"><input value="${esc(e.title)}" onchange="upd('exams','ex','${e.id}','title',this.value.trim())" aria-label="اسم الامتحان"><input class="tm" type="date" value="${e.exam_date}" onchange="upd('exams','ex','${e.id}','exam_date',this.value)" aria-label="التاريخ">${dbtn('ex'+e.id,'exams',e.id)}</div>`).join(''):emp('مفيش امتحانات')}</div>`;
   if(tab==='st')h+=`<div class="card"><b>الدرجات</b><div class="two"><label>اسم الامتحان<input value="${esc(D.cfg.grade_title)}" onchange="setCfg('grade_title',this.value.trim())"></label><label>الدرجة من كام<input type="number" min="1" value="${D.cfg.grade_max}" onchange="setCfg('grade_max',+this.value||20);draw()"></label></div>${ms()}</div><div class="card">${D.sts.length?D.sts.map(s=>`<div class="row"><div><div>${esc(s.name)}</div><div class="note">${esc(s.phone)} - ولي الأمر ${esc(s.guardian)}</div></div><input class="mini" type="number" min="0" max="${D.cfg.grade_max}" placeholder="من ${D.cfg.grade_max}" value="${s.grade==null?'':s.grade}" onchange="setGrade('${s.id}',this.value)" aria-label="درجة ${esc(s.name)}"></div>`).join(''):emp('لسه مفيش طلاب مسجلين')}</div>`;
   if(tab==='sd')h+=`<div class="card"><b>بيانات الطلاب (تقدر تعدّل أي حاجة)</b>${ms()}${D.sts.length?D.sts.map(s=>`<div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px dashed var(--line)"><input value="${esc(s.name)}" onchange="upd('students','sts','${s.id}','name',this.value.trim())" aria-label="الاسم"><div class="two"><input value="${esc(s.phone)}" inputmode="tel" onchange="upd('students','sts','${s.id}','phone',this.value.trim())" aria-label="رقم الطالب"><input value="${esc(s.guardian)}" inputmode="tel" onchange="upd('students','sts','${s.id}','guardian',this.value.trim())" aria-label="رقم ولي الأمر"></div><div class="two"><input value="${esc(s.code)}" onchange="upd('students','sts','${s.id}','code',this.value.trim())" aria-label="الكود">${dbtn('s'+s.id,'students',s.id)}</div></div>`).join(''):emp('لسه مفيش طلاب مسجلين')}</div>`;
-  return h+'</main>'+nav([['qr','QR'],['att','الحضور'],['hw','الواجبات'],['ex','الامتحانات'],['st','الدرجات'],['sd','الطلاب']],tab,'sup')}
+  return h+'</main>'+nav(D.off?[['qr','QR']]:[['qr','QR'],['att','الحضور'],['hw','الواجبات'],['ex','الامتحانات'],['st','الدرجات'],['sd','الطلاب']],tab,'sup')}
 function draw(){
   document.body.className=(view==='sup'||view==='stu')?'':'auth';
   document.getElementById('app').innerHTML=view==='boot'?'<main><p class="mut" style="text-align:center;margin-top:35vh">جاري التحميل...</p></main>':view==='login'?loginV():view==='suplogin'?supLoginV():view==='stu'?stuV():supV();
-  if(view==='sup'&&tab==='qr'&&window.QRCode&&D.qr)new QRCode(document.getElementById('qr'),{text:D.qr,width:190,height:190})
+  if(view==='sup'&&tab==='qr'&&window.QRCode)showQr();else clearInterval(qrT)
 }
 document.getElementById('bg').innerHTML=king(CN)+king(CT)+king(RF,RB);
 draw();boot();
 
 </script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});</script>
 </body>
 </html>
