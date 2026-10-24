@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مركز سان ابرام التعليمي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{--bg:#EBD9AC;--card:#FAF2DA;--ink:#33250F;--mut:#7A6338;--acc:#8F6314;--gold:#C99A3B;--line:#D2B76F;--ok:#2F7A46;--bad:#A8322D;--on:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#231A0C;--card:#33260F;--ink:#F3E3B8;--mut:#C9B07A;--acc:#E0B04D;--gold:#C99A3B;--line:#5A4521;--ok:#62C48B;--bad:#F07A74;--on:#231A0C}}
+body.auth{--bg:#fff;--card:#fff;--ink:#33250F;--mut:#7A6338;--acc:#8F6314;--line:#C99A3B;--on:#fff;--ok:#2F7A46;--bad:#A8322D}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Cairo,Tahoma,sans-serif;line-height:1.6}
+#bg{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:56px;display:flex;justify-content:space-around;align-items:flex-end;opacity:.3;pointer-events:none;z-index:0}
+#bg svg{height:min(36vh,250px);width:auto}
+#app{position:relative;z-index:1;max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;display:flex;flex-direction:column;gap:14px;padding:16px}
+.zig{height:14px;background:conic-gradient(from -45deg at bottom,#0000,var(--gold) 1deg 89deg,#0000 90deg) 50%/22px 100%}
+.zig.top{transform:scaleY(-1)}
+.hero{text-align:center;padding:22px 16px 6px}
+.hero h1{font-size:25px;font-weight:800;color:var(--acc);margin:6px 0 4px;line-height:1.4}
+.hero p{margin:0;color:var(--mut)}
+.bar{background:var(--card);border-bottom:2px solid var(--gold);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bar h2{margin:0;font-size:19px;font-weight:800;color:var(--acc)}.bar p{margin:0;font-size:13px;color:var(--mut)}
+.card{background:color-mix(in srgb,var(--card) 86%,transparent);border:1px solid var(--line);border-radius:10px;box-shadow:inset 0 3px 0 var(--gold);padding:18px 16px 16px;display:flex;flex-direction:column;gap:12px}
+body.auth .card{border:1.5px solid var(--gold);box-shadow:none}
+label{font-size:14px;color:var(--acc);font-weight:600;display:flex;flex-direction:column;gap:4px}
+input{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--gold);border-radius:8px;padding:10px 12px;width:100%}
+input:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:11px 14px;background:var(--acc);color:var(--on);cursor:pointer}
+button.sec{background:transparent;color:var(--acc);border:1.5px solid var(--gold);padding:7px 12px;font-size:14px}
+.link{background:none;border:0;color:var(--mut);font-size:13px;text-decoration:underline;padding:6px;margin-top:auto;align-self:flex-end}
+nav{position:sticky;bottom:0;display:flex;background:var(--card);border-top:2px solid var(--gold);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:12px 2px;font-size:12px}
+nav button.on{color:var(--acc);font-weight:800;box-shadow:inset 0 -3px 0 var(--acc)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}.row:last-child{border:0}
+.tag{font-size:13px;font-weight:600;padding:2px 10px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.mut{color:var(--mut)}
+.err{color:var(--bad);font-size:14px;margin:0}.good{color:var(--ok);font-size:14px;margin:0}
+#qr{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:8px;align-self:center;border:2px solid var(--gold)}
+.note{font-size:13px;color:var(--mut);margin:0}
+.tm{width:112px;padding:6px 8px}select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--gold);border-radius:8px;padding:6px 8px}
+.mini{width:76px;padding:6px 8px;text-align:center}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"></div>
+<div id="app"></div>
+<script>
+const PYR='<svg width="86" height="56" viewBox="0 0 86 56" role="img" aria-label="أهرامات"><circle cx="66" cy="12" r="7" fill="#C99A3B"/><polygon points="2,54 30,14 58,54" fill="#C99A3B"/><polygon points="30,14 58,54 36,54" fill="#8F6314"/><polygon points="40,54 62,26 84,54" fill="#B5832A"/></svg>';
+const FACE='<ellipse cx="40" cy="50" rx="14" ry="18" fill="#C98B4E"/><path d="M52 52 L58 56 L52 58Z" fill="#C98B4E"/><ellipse cx="47" cy="47" rx="3.2" ry="2" fill="#fff"/><circle cx="48" cy="47" r="1.2" fill="#222"/><path d="M42 44 L53 44" stroke="#222" stroke-width="1.5"/><path d="M42 59 Q48 62 53 59" stroke="#7A3E1D" stroke-width="1.5" fill="none"/>';
+const BODY='<path d="M8 100 Q12 74 40 72 Q68 74 72 100Z" fill="#C98B4E"/><path d="M28 78 Q40 88 52 78 L50 84 Q40 94 30 84Z" fill="#2B5C9E"/>';
+const BEARD='<rect x="45" y="64" width="6" height="14" fill="#2B5C9E"/>';
+const king=(front,back)=>`<svg viewBox="0 0 80 100" width="96" height="120" role="img" aria-label="رسم توضيحي">${BODY}${back||''}${FACE}${front}${BEARD}</svg>`;
+const CN='<polygon points="30,34 34,14 40,4 46,14 50,34" fill="#F4EFE0" stroke="#8F6314"/><circle cx="40" cy="7" r="5" fill="#F4EFE0" stroke="#8F6314"/>';
+const CT='<path d="M25 36 Q24 10 41 10 Q58 10 56 36Z" fill="#2B5C9E" stroke="#1B3D6B"/><circle cx="35" cy="20" r="1.6" fill="#C99A3B"/><circle cx="43" cy="16" r="1.6" fill="#C99A3B"/><circle cx="49" cy="24" r="1.6" fill="#C99A3B"/><circle cx="52" cy="35" r="3" fill="#C99A3B"/>';
+const RB='<path d="M22 40 Q22 18 40 18 Q58 18 58 40 L64 74 L50 70 L30 70 L16 74Z" fill="#C99A3B"/><path d="M24 30 H56 M23 38 H57 M21 48 H59 M20 58 H60" stroke="#2B5C9E" stroke-width="2.5"/>';
+const RF='<path d="M26 34 Q40 26 55 34" stroke="#8F6314" stroke-width="2.5" fill="none"/><circle cx="53" cy="32" r="3" fill="#C99A3B"/>';
+const QUOTES=["النجاح مش صدفة، هو مذاكرة كل يوم حتى لو شوية.", "اللي بيذاكر نص ساعة كل يوم بيتفوق على اللي بيذاكر ست ساعات يوم الامتحان.", "كل ناجح بدأ يوم ما قرر إنه مايأجلش مذاكرة النهاردة لبكرة.", "الغلطة مش عيب، العيب إنك ماتتعلمش منها.", "الناجحين مابيستناش الحماس، بيبدؤوا والحماس يجي بعدين.", "المعلومة اللي بتفهمها تفضل معاك العمر كله، واللي بتحفظها بس بتروح بعد الامتحان.", "ابدأ بالصعب وانت لسه عندك تركيز، والسهل هيخلص لوحده.", "الصبر على المذاكرة مُرّ، لكن ثمرته حلوة.", "اسأل لو مش فاهم، السؤال بيفتح باب والسكوت بيقفله.", "اللي بيراجع كتير بينسى قليل.", "حدد هدفك وقسّمه خطوات صغيرة، وكل يوم خطوة.", "الوقت زي النهر ما بيرجعش، فاستغله في اللي ينفعك.", "التاريخ بيعلّمنا إن الأمم العظيمة بنتها ناس اشتغلت وتعبت.", "قبل ما تنام راجع اللي أخدته النهاردة في خمس دقايق، وهيثبت."];
+const quote=()=>QUOTES[Math.floor(Date.now()/864e5)%QUOTES.length];
+
+const SB=window.supabase?supabase.createClient('https://fprlgliwckcyeyhkubjk.supabase.co','sb_publishable_e46qgEsqwG735zU7LXgAhA_Rnl45kL7'):null;
+const SUP_EMAIL='youssefpopwe15@gmail.com';
+let view='boot',tab='scan',msg='',ok='',busy=false,adate='',delKey='',stream=null,scanning=false;
+let D={me:null,sts:[],att:[],hw:[],ex:[],cfg:{grade_title:'',grade_max:20},qr:null};
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const v=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});
+const nowHM=()=>new Date().toLocaleTimeString('en-GB',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit'});
+const ms=()=>(msg?`<p class="err">${msg}</p>`:'')+(ok?`<p class="good">${ok}</p>`:'');
+const emp=t=>`<p class="mut" style="margin:0">${t}</p>`;
+const days=d=>Math.ceil((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/864e5);
+const qd=()=>{try{return localStorage.getItem('sa_qd')}catch(e){return null}};
+const setQd=()=>{try{localStorage.setItem('sa_qd',today())}catch(e){}draw()};
+const FAIL='ماتحفظش، جرّب تاني';
+async function loadStu(){
+  const r=await Promise.all([SB.from('students').select('*').limit(1),SB.from('attendance').select('*').order('day',{ascending:false}),SB.from('homework').select('*').order('due'),SB.from('exams').select('*').order('exam_date'),SB.from('settings').select('*').eq('id',1).single()]);
+  D.me=(r[0].data||[])[0]||null;D.att=r[1].data||[];D.hw=r[2].data||[];D.ex=r[3].data||[];if(r[4].data)D.cfg=r[4].data
+}
+async function loadSup(){
+  const r=await Promise.all([SB.from('students').select('*').order('created_at'),SB.from('attendance').select('*'),SB.from('homework').select('*').order('due'),SB.from('exams').select('*').order('exam_date'),SB.from('settings').select('*').eq('id',1).single(),SB.from('qr').select('*').eq('id',1).single()]);
+  D.sts=r[0].data||[];D.att=r[1].data||[];D.hw=r[2].data||[];D.ex=r[3].data||[];if(r[4].data)D.cfg=r[4].data;D.qr=r[5].data?r[5].data.token:null;
+  if(!D.qr||D.qr.slice(0,10)!==today()){const t=today()+'.'+Math.random().toString(36).slice(2,10);const u=await SB.from('qr').update({token:t}).eq('id',1);if(!u.error)D.qr=t}
+}
+async function boot(){
+  try{
+    if(!SB)throw 0;
+    const s=(await SB.auth.getSession()).data.session;
+    if(s){
+      const sup=s.user.email?(await SB.rpc('is_sup')).data:false;
+      if(sup){await loadSup();view='sup';tab='qr'}
+      else{await loadStu();view=D.me?'stu':'login';tab='scan'}
+    }else view='login'
+  }catch(e){view='login';msg='مفيش اتصال بالإنترنت، جرّب تاني'}
+  draw()
+}
+async function go(vw,t){
+  stopScan();view=vw;if(t)tab=t;msg='';ok='';
+  try{if(vw==='sup')await loadSup();if(vw==='stu')await loadStu()}catch(e){}
+  draw();scrollTo(0,0)
+}
+async function out(){stopScan();await SB.auth.signOut();D={me:null,sts:[],att:[],hw:[],ex:[],cfg:{grade_title:'',grade_max:20},qr:null};go('login')}
+async function reg(){
+  if(busy)return;
+  const n=v('n'),p=v('p'),g=v('g'),c=v('c');
+  if(!n||!p||!g||!c){msg='اكتب كل البيانات الأول';return draw()}
+  busy=true;msg='';
+  try{
+    let s=(await SB.auth.getSession()).data.session;
+    if(!s||s.user.email){const r=await SB.auth.signInAnonymously();if(r.error)throw r.error;s=r.data.session}
+    const r2=await SB.from('students').insert({user_id:s.user.id,name:n,phone:p,guardian:g,code:c});
+    if(r2.error&&r2.error.code!=='23505')throw r2.error;
+    await loadStu();busy=false;go('stu','scan')
+  }catch(e){busy=false;msg='التسجيل ماتمش، تأكد من النت وجرّب تاني';draw()}
+}
+async function supLogin(){
+  if(busy)return;busy=true;msg='';
+  try{
+    const r=await SB.auth.signInWithPassword({email:SUP_EMAIL,password:document.getElementById('pw').value});
+    if(r.error){busy=false;msg='الباسورد غلط';return draw()}
+    const isS=(await SB.rpc('is_sup')).data;
+    if(!isS){await SB.auth.signOut();busy=false;msg='الحساب ده مش مشرف';return draw()}
+    busy=false;go('sup','qr')
+  }catch(e){busy=false;msg='حصلت مشكلة في الاتصال';draw()}
+}
+async function startScan(){
+  msg='';ok='';
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){msg='الكاميرا مش متاحة، اسمح للتطبيق بالكاميرا';return draw()}
+  scanning=true;draw();
+  const vd=document.getElementById('cam');vd.srcObject=stream;await vd.play();
+  const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+  const tick=()=>{
+    if(!scanning)return;
+    if(vd.videoWidth){cv.width=vd.videoWidth;cv.height=vd.videoHeight;cx.drawImage(vd,0,0);const im=cx.getImageData(0,0,cv.width,cv.height),c=jsQR(im.data,im.width,im.height);if(c&&c.data){stopScan();checkIn(c.data);return}}
+    requestAnimationFrame(tick)
+  };tick()
+}
+function stopScan(){scanning=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+async function checkIn(tok){
+  const r=await SB.rpc('check_in',{p_token:tok});
+  const m={invalid:'الكود ده مش صحيح أو قديم',no_student:'سجّل بياناتك الأول',already:'انت سجلت حضورك النهاردة قبل كده'};
+  if(r.error)msg='حصلت مشكلة، جرّب تاني';else if(m[r.data])msg=m[r.data];else ok='اتسجل حضورك: '+r.data;
+  await loadStu();draw()
+}
+async function addHw(){const p=v('hp'),d=v('hd');if(!p||!d){msg='اكتب الصفحات وتاريخ التسليم';return draw()}const r=await SB.from('homework').insert({pages:p,due:d});if(r.error){msg=FAIL;return draw()}await loadSup();ok='اتضاف الواجب وهيوصل الطلاب';msg='';draw()}
+async function addExam(){const t=v('et'),d=v('ed');if(!t||!d){msg='اكتب اسم الامتحان وتاريخه';return draw()}const r=await SB.from('exams').insert({title:t,exam_date:d});if(r.error){msg=FAIL;return draw()}await loadSup();ok='اتضاف الامتحان وهيوصل الطلاب';msg='';draw()}
+async function upd(t,arr,id,f,val){const o=D[arr].find(x=>x.id===id);if(o)o[f]=val;const r=await SB.from(t).update({[f]:val}).eq('id',id);if(r.error){msg=FAIL;draw()}}
+async function setGrade(id,val){await upd('students','sts',id,'grade',val===''?null:+val)}
+async function setCfg(f,val){D.cfg[f]=val;const r=await SB.from('settings').update({[f]:val}).eq('id',1);if(r.error){msg=FAIL;draw()}}
+async function setAtt(sid,val){
+  const d=adate||today(),a=D.att.find(x=>x.student_id===sid&&x.day===d);let r;
+  if(val==='غايب'){if(a)r=await SB.from('attendance').delete().eq('id',a.id)}
+  else if(a)r=await SB.from('attendance').update({status:val}).eq('id',a.id);
+  else r=await SB.from('attendance').insert({student_id:sid,day:d,time_in:nowHM()+':00',status:val});
+  msg=r&&r.error?FAIL:'';await loadSup();draw()
+}
+async function setAtime(id,t){if(!t)return;const r=await SB.from('attendance').update({time_in:t+':00'}).eq('id',id);if(r.error){msg=FAIL;draw()}}
+async function delItem(k,t,id){if(delKey!==k){delKey=k;return draw()}delKey='';await SB.from(t).delete().eq('id',id);await loadSup();draw()}
+const dbtn=(k,t,id)=>`<button class="sec" onclick="delItem('${k}','${t}','${id}')">${delKey===k?'تأكيد الحذف':'حذف'}</button>`;
+function notes(){
+  const a=[],k=(7-new Date().getDay())%7;
+  a.push(k===0?'النهاردة درس التاريخ الساعة 4:30 في مركز سان ابرام':`درس التاريخ يوم الأحد الساعة 4:30 (فاضل ${k} يوم)`);
+  a.push('حكمة اليوم: '+quote());
+  a.push('ذاكر النهاردة نص ساعة من درس التاريخ');
+  D.hw.forEach(x=>{if(days(x.due)>=0)a.push(`واجب: ${x.pages} (تسليم ${x.due})`)});
+  D.ex.forEach(e=>{const x=days(e.exam_date);if(x>=0)a.push(`امتحان شامل: ${e.title}${x===0?' النهاردة':' بعد '+x+' يوم'}`)});
+  return a
+}
+
+const nav=(items,cur,vw)=>`<nav>${items.map(t=>`<button class="${cur===t[0]?'on':''}" onclick="go('${vw}','${t[0]}')">${t[1]}</button>`).join('')}</nav>`;
+const bar=(t,s,out)=>`<div class="bar"><div><h2>${t}</h2><p>${s}</p></div><button class="sec" onclick="${out}">خروج</button></div><div class="zig"></div>`;
+function loginV(){return `<div class="hero">${PYR}<h1>مركز سان ابرام التعليمي يرحب بكم</h1><p>درس التاريخ - أولى ثانوي</p></div><div class="zig" style="margin-top:12px"></div>
+<main><div class="card"><label>الاسم<input id="n" autocomplete="name"></label><label>رقم الطالب<input id="p" inputmode="tel"></label><label>رقم ولي الأمر<input id="g" inputmode="tel"></label><label>الكود<input id="c"></label>${ms()}<button onclick="reg()">تسجيل</button></div>
+<button class="link" onclick="go('suplogin')">تسجيل مشرف</button></main><div class="zig top"></div>`}
+function supLoginV(){return `<div class="hero">${PYR}<h1>دخول المشرف</h1></div><div class="zig" style="margin-top:12px"></div>
+<main><div class="card"><label>الباسورد<input id="pw" type="password"></label>${ms()}<button onclick="supLogin()">دخول</button><button class="sec" onclick="go('login')">رجوع</button></div></main><div class="zig top"></div>`}
+
+
+function stuV(){
+  const s=D.me;let h=bar('أهلًا '+esc(s.name),'مركز سان ابرام التعليمي',"out()")+'<main>';
+  if(tab==='scan'&&qd()!==today())h+=`<div class="card" style="box-shadow:inset 0 3px 0 var(--acc)"><div class="row" style="border:0"><b style="color:var(--acc)">حكمة اليوم</b><button class="sec" onclick="setQd()">إغلاق</button></div><p style="margin:0;font-size:17px">${quote()}</p></div>`;
+  if(tab==='scan')h+=`<div class="card"><p style="margin:0">امسح الـ QR اللي مع المشرف. اللي يوصل بعد 4:45 بيتسجل متأخر.</p>${scanning?'<video id="cam" playsinline muted style="width:100%;border-radius:8px"></video><button class="sec" onclick="stopScan();draw()">إلغاء</button>':'<button onclick="startScan()">فتح الكاميرا ومسح QR</button>'}${ms()}</div><div class="card"><div class="row"><b>سجل حضورك</b><span class="mut">حضرت ${D.att.length} مرة</span></div>${D.att.length?D.att.map(a=>`<div class="row"><span>${a.day} - ${a.time_in.slice(0,5)}</span><span class="tag ${a.status==='حاضر'?'ok':'bad'}">${a.status}</span></div>`).join(''):emp('لسه مفيش حضور متسجل')}</div>`;
+  if(tab==='hw')h+=`<div class="card"><b>الواجبات</b>${D.hw.length?D.hw.slice().reverse().map(x=>`<div class="row"><span>${esc(x.pages)}</span><span class="mut">تسليم ${x.due}</span></div>`).join(''):emp('مفيش واجبات دلوقتي')}</div>`;
+  if(tab==='note')h+=`<div class="card"><b>الإشعارات</b>${notes().map(t=>`<div class="row"><span>${esc(t)}</span></div>`).join('')}</div>`;
+  if(tab==='grade')h+=`<div class="card"><b>درجاتي</b><div class="row"><span>${esc(D.cfg.grade_title||'الامتحان')}</span><b>${s.grade==null?'لسه متحطتش':s.grade+' من '+D.cfg.grade_max}</b></div></div>`;
+  return h+'</main>'+nav([['scan','الحضور'],['hw','الواجبات'],['note','الإشعارات'],['grade','درجاتي']],tab,'stu')}
+function supV(){
+  const d=adate||today();let h=bar('لوحة المشرف',D.sts.length+' طالب',"out()")+'<main>';
+  if(tab==='qr')h+=`<div class="card"><p style="margin:0">اعرض الكود ده والطلاب يمسحوه بالكاميرا من التطبيق. بيتجدد لوحده كل يوم.</p><div id="qr"></div><p class="note">درس ${today()} الساعة 4:30</p></div>`;
+  if(tab==='att')h+=`<div class="card"><label>التاريخ<input type="date" value="${d}" onchange="adate=this.value;draw()"></label><p class="note">غيّر حالة أي طالب (حاضر / متأخر / غايب) أو وقت وصوله.</p>${ms()}</div><div class="card">${D.sts.length?D.sts.map(s=>{const a=D.att.find(x=>x.student_id===s.id&&x.day===d),st=a?a.status:'غايب';return `<div class="row"><span style="flex:1">${esc(s.name)}</span><select class="${st==='حاضر'?'ok':st==='متأخر'?'bad':'mut'}" onchange="setAtt('${s.id}',this.value)" aria-label="حالة ${esc(s.name)}">${['حاضر','متأخر','غايب'].map(o=>`<option${o===st?' selected':''}>${o}</option>`).join('')}</select>${a?`<input class="tm" type="time" value="${a.time_in.slice(0,5)}" onchange="setAtime('${a.id}',this.value)" aria-label="وقت ${esc(s.name)}">`:''}</div>`}).join(''):emp('لسه مفيش طلاب مسجلين')}</div>`;
+  if(tab==='hw')h+=`<div class="card"><b>إضافة واجب</b><label>الصفحات (مثلًا: صفحات 25 إلى 30)<input id="hp"></label><label>تاريخ التسليم<input id="hd" type="date"></label><button onclick="addHw()">إضافة وإرسال إشعار</button>${ms()}</div><div class="card"><b>الواجبات الحالية (تقدر تعدّل أو تحذف)</b>${D.hw.length?D.hw.map(x=>`<div class="row"><input value="${esc(x.pages)}" onchange="upd('homework','hw','${x.id}','pages',this.value.trim())" aria-label="الصفحات"><input class="tm" type="date" value="${x.due}" onchange="upd('homework','hw','${x.id}','due',this.value)" aria-label="التسليم">${dbtn('hw'+x.id,'homework',x.id)}</div>`).join(''):emp('مفيش واجبات')}</div>`;
+  if(tab==='ex')h+=`<div class="card"><b>إضافة امتحان شامل</b><label>اسم الامتحان<input id="et"></label><label>تاريخه<input id="ed" type="date"></label><button onclick="addExam()">إضافة وإرسال إشعار</button>${ms()}</div><div class="card"><b>الامتحانات الحالية (تقدر تعدّل أو تحذف)</b>${D.ex.length?D.ex.map(e=>`<div class="row"><input value="${esc(e.title)}" onchange="upd('exams','ex','${e.id}','title',this.value.trim())" aria-label="اسم الامتحان"><input class="tm" type="date" value="${e.exam_date}" onchange="upd('exams','ex','${e.id}','exam_date',this.value)" aria-label="التاريخ">${dbtn('ex'+e.id,'exams',e.id)}</div>`).join(''):emp('مفيش امتحانات')}</div>`;
+  if(tab==='st')h+=`<div class="card"><b>الدرجات</b><div class="two"><label>اسم الامتحان<input value="${esc(D.cfg.grade_title)}" onchange="setCfg('grade_title',this.value.trim())"></label><label>الدرجة من كام<input type="number" min="1" value="${D.cfg.grade_max}" onchange="setCfg('grade_max',+this.value||20);draw()"></label></div>${ms()}</div><div class="card">${D.sts.length?D.sts.map(s=>`<div class="row"><div><div>${esc(s.name)}</div><div class="note">${esc(s.phone)} - ولي الأمر ${esc(s.guardian)}</div></div><input class="mini" type="number" min="0" max="${D.cfg.grade_max}" placeholder="من ${D.cfg.grade_max}" value="${s.grade==null?'':s.grade}" onchange="setGrade('${s.id}',this.value)" aria-label="درجة ${esc(s.name)}"></div>`).join(''):emp('لسه مفيش طلاب مسجلين')}</div>`;
+  if(tab==='sd')h+=`<div class="card"><b>بيانات الطلاب (تقدر تعدّل أي حاجة)</b>${ms()}${D.sts.length?D.sts.map(s=>`<div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px dashed var(--line)"><input value="${esc(s.name)}" onchange="upd('students','sts','${s.id}','name',this.value.trim())" aria-label="الاسم"><div class="two"><input value="${esc(s.phone)}" inputmode="tel" onchange="upd('students','sts','${s.id}','phone',this.value.trim())" aria-label="رقم الطالب"><input value="${esc(s.guardian)}" inputmode="tel" onchange="upd('students','sts','${s.id}','guardian',this.value.trim())" aria-label="رقم ولي الأمر"></div><div class="two"><input value="${esc(s.code)}" onchange="upd('students','sts','${s.id}','code',this.value.trim())" aria-label="الكود">${dbtn('s'+s.id,'students',s.id)}</div></div>`).join(''):emp('لسه مفيش طلاب مسجلين')}</div>`;
+  return h+'</main>'+nav([['qr','QR'],['att','الحضور'],['hw','الواجبات'],['ex','الامتحانات'],['st','الدرجات'],['sd','الطلاب']],tab,'sup')}
+function draw(){
+  document.body.className=(view==='sup'||view==='stu')?'':'auth';
+  document.getElementById('app').innerHTML=view==='boot'?'<main><p class="mut" style="text-align:center;margin-top:35vh">جاري التحميل...</p></main>':view==='login'?loginV():view==='suplogin'?supLoginV():view==='stu'?stuV():supV();
+  if(view==='sup'&&tab==='qr'&&window.QRCode&&D.qr)new QRCode(document.getElementById('qr'),{text:D.qr,width:190,height:190})
+}
+document.getElementById('bg').innerHTML=king(CN)+king(CT)+king(RF,RB);
+draw();boot();
+
+</script>
+</body>
+</html>
